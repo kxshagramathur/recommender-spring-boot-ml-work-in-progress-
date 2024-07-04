@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microservices Frontend</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        h1 {
+            background-color: #333;
+            color: #fff;
+            padding: 10px 0;
+            text-align: center;
+            margin: 0;
+        }
+
+        .container {
+            width: 80%;
+            margin: 20px auto;
+        }
+
+        .user-selection {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .user-selection select {
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        .product-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .product-card {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            width: 200px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .product-card img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+        }
+
+        .product-card h3 {
+            margin: 10px 0;
+        }
+
+        .product-card p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .product-card .price {
+            color: #b12704;
+            font-size: 18px;
+            margin: 10px 0;
+        }
+
+        .product-card .buttons {
+            display: flex;
+            justify-content: space-around;
+            margin: 10px 0;
+        }
+
+        .product-card button {
+            padding: 10px;
+            font-size: 14px;
+            border: none;
+            background-color: #007bff;
+            color: #fff;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .product-card button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+<h1>Microservices Frontend</h1>
+
+<div class="container">
+    <!-- User selection -->
+    <div class="user-selection">
+        <h2>Select User</h2>
+        <select id="userSelect"></select>
+    </div>
+
+    <!-- Product display -->
+    <div class="product-list" id="productList"></div>
+</div>
+
+<script>
+    const userServiceUrl = 'http://localhost:8081/users';
+    const productServiceUrl = 'http://localhost:8082/products';
+    const interactionServiceUrl = 'http://localhost:8083/interactions'; // Assuming it's running on 8083
+
+    document.addEventListener('DOMContentLoaded', () => {
+        fetchUsers();
+        fetchProducts();
+    });
+
+    async function fetchUsers() {
+        try {
+            const response = await fetch(userServiceUrl);
+            const users = await response.json();
+            populateUsers(users);
+        } catch (error) {
+            console.error('Error fetching users:', error);
+        }
+    }
+
+    function populateUsers(users) {
+        const userSelect = document.getElementById('userSelect');
+        users.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user.userId;
+            option.textContent = user.username;
+            userSelect.appendChild(option);
+        });
+    }
+
+    async function fetchProducts() {
+        try {
+            const response = await fetch(productServiceUrl);
+            const products = await response.json();
+            populateProducts(products);
+        } catch (error) {
+            console.error('Error fetching products:', error);
+        }
+    }
+
+    function populateProducts(products) {
+        const productList = document.getElementById('productList');
+        products.forEach(product => {
+            const productCard = document.createElement('div');
+            productCard.className = 'product-card';
+
+            // Product image (Placeholder)
+            const img = document.createElement('img');
+            img.src = 'https://via.placeholder.com/200x150'; // Placeholder image
+            img.alt = product.productName;
+
+            const productName = document.createElement('h3');
+            productName.textContent = product.productName;
+
+            const productCategory = document.createElement('p');
+            productCategory.textContent = product.category;
+
+            const productPrice = document.createElement('p');
+            productPrice.className = 'price';
+            productPrice.textContent = `$${product.price}`;
+
+            const buttonsDiv = document.createElement('div');
+            buttonsDiv.className = 'buttons';
+
+            const viewButton = document.createElement('button');
+            viewButton.textContent = 'View';
+            viewButton.onclick = () => recordInteraction(product.productId, 'view');
+
+            const addToCartButton = document.createElement('button');
+            addToCartButton.textContent = 'Add to Cart';
+            addToCartButton.onclick = () => recordInteraction(product.productId, 'add_to_cart');
+
+            const shareButton = document.createElement('button');
+            shareButton.textContent = 'Share';
+            shareButton.onclick = () => recordInteraction(product.productId, 'share');
+
+            buttonsDiv.appendChild(viewButton);
+            buttonsDiv.appendChild(addToCartButton);
+            buttonsDiv.appendChild(shareButton);
+
+            productCard.appendChild(img);
+            productCard.appendChild(productName);
+            productCard.appendChild(productCategory);
+            productCard.appendChild(productPrice);
+            productCard.appendChild(buttonsDiv);
+
+            productList.appendChild(productCard);
+        });
+    }
+
+    async function recordInteraction(productId, interactionType) {
+        const userId = document.getElementById('userSelect').value;
+        if (!userId) {
+            alert('Please select a user.');
+            return;
+        }
+        const interaction = {
+            userId: parseInt(userId),
+            productId: productId,
+            interactionType: interactionType
+        };
+        try {
+            await fetch(interactionServiceUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(interaction)
+            });
+            alert('Interaction recorded.');
+        } catch (error) {
+            console.error('Error recording interaction:', error);
+        }
+    }
+</script>
+</body>
+</html>
